@@ -19,6 +19,8 @@ function GalaxyBackground() {
       </svg>
       <style>{`
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        @keyframes launch { 0%{ transform: translate(-50%, 60vh) rotate(0deg)} 100%{ transform: translate(-50%, -120vh) rotate(-5deg)} }
+        @keyframes twinkle { 0%,100%{opacity:.3} 50%{opacity:1} }
       `}</style>
     </div>
   )
@@ -64,11 +66,11 @@ function SuggestionChip({ label, onClick }) {
   )
 }
 
-function RobotAssistant({ onAsk }) {
+function RobotAssistant({ onAsk, onEasterEgg }) {
   const [open, setOpen] = useState(true)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([
-    { role: 'bot', text: 'Halo! Aku RoboLab 🤖✨. Tanyakan: profil, visi, misi, tujuan, atau prestasi.' }
+    { role: 'bot', text: 'Halo! Aku RoboLab 🤖✨. Tanyakan: profil, visi, misi, tujuan, prestasi. Coba juga: rocket 🚀' }
   ])
   const [typing, setTyping] = useState(false)
   const endRef = useRef(null)
@@ -83,6 +85,9 @@ function RobotAssistant({ onAsk }) {
     setInput('')
     setTyping(true)
     setTimeout(() => {
+      if (/rocket|🚀/i.test(q)) {
+        onEasterEgg?.()
+      }
       const reply = onAsk ? onAsk(q) : 'Untuk saat ini aku menjawab hal-hal dasar seputar KIR.'
       setMessages(m => [...m, { role: 'bot', text: reply }])
       setTyping(false)
@@ -102,7 +107,7 @@ function RobotAssistant({ onAsk }) {
             <button onClick={() => setOpen(false)} className="ml-auto text-xs opacity-70 hover:opacity-100">Sembunyikan</button>
           </div>
           <div className="px-4 pt-3 pb-2 flex flex-wrap gap-2 border-b border-white/10">
-            {['Profil','Visi','Misi','Tujuan','Prestasi'].map((l)=> (
+            {['Profil','Visi','Misi','Tujuan','Prestasi','Rocket 🚀'].map((l)=> (
               <SuggestionChip key={l} label={l} onClick={send} />
             ))}
           </div>
@@ -156,6 +161,101 @@ function useReveal() {
   return ref
 }
 
+function Badge({ children }) {
+  return <span className="inline-flex items-center gap-1 text-xs rounded-full bg-white/10 px-2 py-1 mr-2 mb-2 ring-1 ring-white/15">{children}</span>
+}
+
+function getBadges(p) {
+  const list = []
+  const lvl = String(p?.tingkat||'').toLowerCase()
+  const bidang = String(p?.bidang||'').toLowerCase()
+  if (/nasional/.test(lvl)) list.push('🏆 Nasional')
+  else if (/prov/.test(lvl)) list.push('🥇 Provinsi')
+  else if (/kab|kota|daerah/.test(lvl)) list.push('🥈 Daerah')
+  if (/bio/.test(bidang)) list.push('🧬 Biologi')
+  if (/fis/.test(bidang)) list.push('⚛️ Fisika')
+  if (/kim/.test(bidang)) list.push('⚗️ Kimia')
+  if (/kom|ti|informatika|coding/.test(bidang)) list.push('💻 Komputer')
+  return list
+}
+
+function RocketLaunch({ show, onDone }) {
+  useEffect(() => {
+    if (!show) return
+    const t = setTimeout(() => onDone?.(), 3500)
+    return () => clearTimeout(t)
+  }, [show, onDone])
+  if (!show) return null
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[60]">
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/0 to-slate-950/70" />
+      <div className="absolute left-1/2 top-0 -translate-x-1/2" style={{animation:'launch 3.2s ease-in-out forwards'}}>
+        <div className="text-6xl drop-shadow-[0_8px_20px_rgba(99,102,241,0.5)]">🚀</div>
+      </div>
+      {Array.from({length:30}).map((_,i)=> (
+        <div key={i} className="absolute h-1 w-1 bg-white rounded-full" style={{left:`${Math.random()*100}%`, top:`${Math.random()*100}%`, animation:'twinkle 1.6s infinite', animationDelay:`-${Math.random()}s`, opacity:.4}} />
+      ))}
+    </div>
+  )
+}
+
+function Gallery() {
+  const imgs = [
+    'https://images.unsplash.com/photo-1532634896-26909d0d4b6a?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1517976487492-576ea36be7a5?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1532635241-17e820acc59f?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5?q=80&w=1200&auto=format&fit=crop'
+  ]
+  const [idx, setIdx] = useState(0)
+  const [open, setOpen] = useState(false)
+  const startX = useRef(0)
+  const onTouchStart = (e)=> { startX.current = e.touches[0].clientX }
+  const onTouchEnd = (e)=> {
+    const dx = e.changedTouches[0].clientX - startX.current
+    if (dx > 50) setIdx((i)=> (i-1+imgs.length)%imgs.length)
+    if (dx < -50) setIdx((i)=> (i+1)%imgs.length)
+  }
+  const next = ()=> setIdx((i)=> (i+1)%imgs.length)
+  const prev = ()=> setIdx((i)=> (i-1+imgs.length)%imgs.length)
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-10" data-reveal>
+      <h2 className="text-2xl font-bold">Galeri Kegiatan</h2>
+      <p className="text-slate-300 mt-1">Swipe atau klik untuk melihat momen seru KIR.</p>
+      <div className="mt-4 relative select-none">
+        <div className="aspect-video w-full overflow-hidden rounded-2xl ring-1 ring-white/10 bg-slate-900" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          <img src={imgs[idx]} alt="Kegiatan KIR" className="h-full w-full object-cover" />
+        </div>
+        <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 text-white px-3 py-2 hover:bg-black/60">‹</button>
+        <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 text-white px-3 py-2 hover:bg-black/60">›</button>
+        <div className="mt-3 flex gap-2 overflow-x-auto">
+          {imgs.map((u,i)=> (
+            <button key={u} onClick={()=>{setIdx(i);}} className={`h-16 aspect-video rounded-lg overflow-hidden ring-1 ${i===idx?'ring-indigo-400':'ring-white/10'} hover:opacity-90`}>
+              <img src={u} alt="thumb" className="h-full w-full object-cover" />
+            </button>
+          ))}
+          <button onClick={()=>setOpen(true)} className="ml-auto text-sm rounded-full bg-white/10 px-3 py-2 hover:bg-white/15">Buka Lightbox</button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4" onClick={()=>setOpen(false)}>
+          <div className="relative max-w-5xl w-full" onClick={(e)=>e.stopPropagation()}>
+            <img src={imgs[idx]} alt="lightbox" className="w-full h-auto rounded-xl" />
+            <div className="absolute inset-x-0 -bottom-12 flex items-center justify-between">
+              <button onClick={()=>setOpen(false)} className="rounded-full bg-white/10 px-4 py-2">Tutup</button>
+              <div className="flex gap-2">
+                <button onClick={prev} className="rounded-full bg-white/10 px-4 py-2">‹</button>
+                <button onClick={next} className="rounded-full bg-white/10 px-4 py-2">›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function App() {
   const initialUrl = useMemo(() => {
     const envUrl = import.meta.env.VITE_BACKEND_URL || ''
@@ -174,9 +274,12 @@ function App() {
   const [error, setError] = useState('')
   const [hello, setHello] = useState('')
   const [filter, setFilter] = useState({ tahun: 'Semua', q: '' })
+  const [vibes, setVibes] = useState(false)
+  const [rocket, setRocket] = useState(false)
 
   const base = backendUrl?.replace(/\/$/, '')
   const revealRef = useReveal()
+  const audioRef = useRef(null)
 
   const fetchContent = async () => {
     if (!base) return
@@ -206,15 +309,32 @@ function App() {
     try { localStorage.setItem('backend_url', backendUrl) } catch {}
   }, [backendUrl])
 
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a) return
+    if (vibes) {
+      a.volume = 0.25
+      const p = a.play()
+      if (p && p.catch) p.catch(()=>{})
+    } else {
+      a.pause()
+    }
+  }, [vibes])
+
   const askRobot = (q) => {
     const text = q.toLowerCase()
+    if (/rocket|🚀/.test(text)) {
+      setRocket(true)
+      setTimeout(()=>setRocket(false), 3600)
+      return 'Tahan... peluncuran dimulai! 🚀'
+    }
     if (!site) return 'Hubungkan backend dulu, lalu klik Muat Konten.'
     if (text.includes('profil')) return site.profil?.sejarah || 'Profil belum tersedia.'
     if (text.includes('visi')) return site.visi
     if (text.includes('misi')) return (site.misi || []).map((m,i)=>`${i+1}. ${m}`).join('\n')
     if (text.includes('tujuan')) return (site.tujuan || []).map((t,i)=>`• ${t}`).join('\n')
     if (text.includes('prestasi')) return achievements.length ? achievements.map(p=>`${p.tahun} – ${p.bidang} (${p.tingkat}): ${p.prestasi}`).join('\n') : 'Belum ada data prestasi.'
-    return 'Coba kata kunci: profil, visi, misi, tujuan, prestasi.'
+    return 'Coba kata kunci: profil, visi, misi, tujuan, prestasi, rocket.'
   }
 
   const years = ['Semua', ...Array.from(new Set((achievements||[]).map(a=>a.tahun))).sort((a,b)=>String(b).localeCompare(String(a)))]
@@ -227,12 +347,16 @@ function App() {
   return (
     <div className="min-h-screen relative bg-slate-950 text-slate-100" ref={revealRef}>
       <GalaxyBackground />
+      <RocketLaunch show={rocket} onDone={()=>setRocket(false)} />
+
+      {/* Hidden/controlled audio for Vibes mode */}
+      <audio ref={audioRef} loop src="https://cdn.pixabay.com/audio/2022/03/15/audio_4f0f3a3a72.mp3" />
 
       {/* Navbar */}
       <header className="sticky top-0 z-40 bg-slate-950/60 backdrop-blur border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <a href="#top" className="flex items-center gap-3 group">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-400 to-fuchsia-500 group-hover:scale-110 transition" />
+            <div className={`h-8 w-8 rounded-full bg-gradient-to-br from-indigo-400 to-fuchsia-500 group-hover:scale-110 transition ${vibes ? 'ring-2 ring-indigo-400/60 shadow-[0_0_20px_rgba(99,102,241,.35)]' : ''}`} />
             <div className="font-extrabold text-lg bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-cyan-300">KIR MAN 1 HST</div>
           </a>
           <nav className="hidden md:flex gap-6 text-sm text-slate-300">
@@ -240,8 +364,12 @@ function App() {
             <a href="#tujuan" className="hover:text-white">Tujuan</a>
             <a href="#visi-misi" className="hover:text-white">Visi & Misi</a>
             <a href="#prestasi" className="hover:text-white">Prestasi</a>
+            <a href="#galeri" className="hover:text-white">Galeri</a>
             <a href="#demo" className="hover:text-white">Integrasi</a>
           </nav>
+          <button onClick={()=>setVibes(v=>!v)} className={`ml-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm ring-1 transition ${vibes ? 'bg-indigo-500/20 ring-indigo-400 text-indigo-200' : 'bg-white/5 ring-white/15 text-slate-300 hover:bg-white/10'}`}>
+            {vibes ? '🎧 Vibes On' : '🎧 Vibes Off'}
+          </button>
         </div>
       </header>
 
@@ -339,12 +467,20 @@ function App() {
               <div className="text-slate-200 font-semibold">{p.tahun} • {p.bidang}</div>
               <div className="text-slate-400 text-sm">{p.tingkat}</div>
               <div className="mt-1">{p.prestasi}</div>
+              <div className="mt-3 -mb-1">
+                {getBadges(p).map(b=> <Badge key={b}>{b}</Badge>)}
+              </div>
             </div>
           ))}
           {!filtered?.length && (
             <div className="text-slate-400">Belum ada data. Hubungkan backend lalu klik Muat Konten.</div>
           )}
         </div>
+      </section>
+
+      {/* Galeri */}
+      <section id="galeri">
+        <Gallery />
       </section>
 
       {/* Integrasi Backend */}
@@ -386,11 +522,12 @@ function App() {
             <a href="#profil" className="hover:text-white">Profil</a>
             <a href="#visi-misi" className="hover:text-white">Visi & Misi</a>
             <a href="#prestasi" className="hover:text-white">Prestasi</a>
+            <a href="#galeri" className="hover:text-white">Galeri</a>
           </div>
         </div>
       </footer>
 
-      <RobotAssistant onAsk={askRobot} />
+      <RobotAssistant onAsk={askRobot} onEasterEgg={()=>{ setRocket(true); setTimeout(()=>setRocket(false), 3600) }} />
     </div>
   )
 }
